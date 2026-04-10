@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>墨痕 Inkmark · 个人读书笔记</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-logo">
+      <span class="nav-logo-main">墨痕</span>
+      <span class="nav-logo-sub">Inkmark</span>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">首页</a>
+      <a href="#categories">分类</a>
+      <a href="#recent">最近更新</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <p class="eyebrow">Reading · Thinking · Recording</p>
+    <h1 class="hero-title">用文字留住<em>思考的痕迹</em></h1>
+    <p class="hero-desc">这里是我的个人读书笔记库。每一本书都是一次对话，每一篇笔记都是思考的沉淀。</p>
+    <div class="hero-divider"></div>
+  </section>
+
+  <section class="categories-section" id="categories">
+    <p class="section-label">分类浏览</p>
+    <div class="categories-grid">
+      <a href="category.html?type=marketing" class="cat-card">
+        <div class="cat-card-accent accent-marketing"></div>
+        <div class="cat-card-title">营销</div>
+        <div class="cat-card-en">Marketing</div>
+        <div class="cat-card-count" id="count-marketing">0 篇笔记</div>
+        <span class="cat-card-arrow">→</span>
+      </a>
+      <a href="category.html?type=history" class="cat-card">
+        <div class="cat-card-accent accent-history"></div>
+        <div class="cat-card-title">历史</div>
+        <div class="cat-card-en">History</div>
+        <div class="cat-card-count" id="count-history">0 篇笔记</div>
+        <span class="cat-card-arrow">→</span>
+      </a>
+      <a href="category.html?type=medicine" class="cat-card">
+        <div class="cat-card-accent accent-medicine"></div>
+        <div class="cat-card-title">医学</div>
+        <div class="cat-card-en">Medicine</div>
+        <div class="cat-card-count" id="count-medicine">0 篇笔记</div>
+        <span class="cat-card-arrow">→</span>
+      </a>
+      <a href="category.html?type=philosophy" class="cat-card">
+        <div class="cat-card-accent accent-philosophy"></div>
+        <div class="cat-card-title">哲学</div>
+        <div class="cat-card-en">Philosophy</div>
+        <div class="cat-card-count" id="count-philosophy">0 篇笔记</div>
+        <span class="cat-card-arrow">→</span>
+      </a>
+      <a href="category.html?type=tech" class="cat-card">
+        <div class="cat-card-accent accent-tech"></div>
+        <div class="cat-card-title">科技</div>
+        <div class="cat-card-en">Technology</div>
+        <div class="cat-card-count" id="count-tech">0 篇笔记</div>
+        <span class="cat-card-arrow">→</span>
+      </a>
+      <a href="category.html?type=psychology" class="cat-card">
+        <div class="cat-card-accent accent-psychology"></div>
+        <div class="cat-card-title">心理学</div>
+        <div class="cat-card-en">Psychology</div>
+        <div class="cat-card-count" id="count-psychology">0 篇笔记</div>
+        <span class="cat-card-arrow">→</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="recent-section" id="recent">
+    <div class="recent-inner">
+      <div class="recent-header">
+        <p class="section-label" style="margin-bottom:0;">最近更新</p>
+      </div>
+      <div class="recent-grid" id="recent-grid">
+        <div class="empty-state">还没有读书笔记，快去上传第一篇吧！</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    墨痕 Inkmark · 个人读书笔记 · 持续更新中
+  </footer>
+
+  <script src="data.js"></script>
+  <script>
+    // 统计各分类数量
+    const counts = {};
+    BOOKS.forEach(book => {
+      counts[book.category] = (counts[book.category] || 0) + 1;
+    });
+    Object.keys(counts).forEach(cat => {
+      const el = document.getElementById('count-' + cat);
+      if (el) el.textContent = counts[cat] + ' 篇笔记';
+    });
+
+    // 最近3本书
+    const grid = document.getElementById('recent-grid');
+    const recent = BOOKS.slice(-3).reverse();
+    if (recent.length > 0) {
+      grid.innerHTML = recent.map(book => `
+        <a href="report.html?file=${book.file}" class="book-card">
+          <span class="book-tag tag-${book.category}">${book.categoryName}</span>
+          <div class="book-title">《${book.title}》</div>
+          <div class="book-quote">「${book.summary}」</div>
+        </a>
+      `).join('');
+    }
+  </script>
+</body>
+</html>

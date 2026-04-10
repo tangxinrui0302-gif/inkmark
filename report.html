@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>读书报告 · 墨痕 Inkmark</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="report-nav">
+    <div class="breadcrumb">
+      <a href="index.html">首页</a> /
+      <a href="#" id="nav-cat-link">分类</a> /
+      <span id="nav-title">报告</span>
+    </div>
+    <div class="nav-logo" style="text-align:right;">
+      <span class="nav-logo-main">墨痕</span>
+      <span class="nav-logo-sub">Inkmark</span>
+    </div>
+  </nav>
+
+  <div class="report-content">
+    <div class="report-header">
+      <span class="report-tag" id="report-tag"></span>
+      <h1 class="report-title" id="report-title">加载中...</h1>
+      <div class="report-meta" id="report-meta"></div>
+      <div class="report-one-liner" id="report-one-liner" style="display:none;"></div>
+    </div>
+
+    <div id="report-body">
+      <!-- 读书报告内容将在这里动态加载 -->
+      <p style="color:#9B9589;text-align:center;padding:3rem 0;">正在加载报告内容...</p>
+    </div>
+  </div>
+
+  <!-- 划词工具栏 -->
+  <div class="highlight-toolbar" id="highlight-toolbar">
+    <button id="btn-add-comment">＋ 添加备注</button>
+    <button id="btn-highlight-only">标记</button>
+  </div>
+
+  <!-- 评论输入框 -->
+  <div class="comment-input-box" id="comment-input-box">
+    <textarea id="comment-textarea" rows="3" placeholder="写下你的想法..."></textarea>
+    <div class="comment-input-actions">
+      <button class="btn-cancel" id="btn-cancel">取消</button>
+      <button class="btn-save" id="btn-save">保存</button>
+    </div>
+  </div>
+
+  <!-- 侧边评论面板 -->
+  <div class="comment-panel" id="comment-panel">
+    <div class="comment-panel-title">我的批注</div>
+    <div id="comment-list">
+      <div style="font-size:13px;color:#B0AA9F;text-align:center;padding:2rem 0;">还没有批注</div>
+    </div>
+  </div>
+
+  <!-- 切换评论面板按钮 -->
+  <button class="comment-toggle" id="comment-toggle">批注 (<span id="comment-count">0</span>)</button>
+
+  <footer class="footer" style="margin-top:4rem;">
+    墨痕 Inkmark · 个人读书笔记 · 持续更新中
+  </footer>
+
+  <script src="data.js"></script>
+  <script>
+    // ===== 读取 URL 参数 =====
+    const params = new URLSearchParams(window.location.search);
+    const fileParam = params.get('file') || '';
+    const titleParam = decodeURIComponent(params.get('title') || '读书报告');
+    const categoryParam = params.get('category') || '';
+    const categoryNameParam = decodeURIComponent(params.get('categoryName') || '');
+
+    // 设置页面标题和元信息
+    document.title = titleParam + ' · 墨痕 Inkmark';
+    document.getElementById('nav-title').textContent = titleParam;
+    document.getElementById('nav-cat-link').href = 'category.html?type=' + categoryParam;
+    document.getElementById('nav-cat-link').textContent = categoryNameParam;
+    document.getElementById('report-title').textContent = '《' + titleParam + '》';
+
+    const tagEl = document.getElementById('report-tag');
+    tagEl.textContent = categoryNameParam;
+    tagEl.className = 'report-tag tag-' + categoryParam;
+
+    // 从 BOOKS 数据中查找该书信息
+    const bookData = BOOKS.find(b => b.file === fileParam);
+    if (bookData) {
+      document.getElementById('report-meta').textContent = bookData.date;
+      const oneliner = document.getElementById('report-one-liner');
+      oneliner.textContent = '「' + bookData.summary + '」';
+      oneliner.style.display = 'block';
+    }
+
+    // ===== 加载报告内容 =====
+    // 方式一：如果你的读书报告是独立的 HTML 文件，用 fetch 加载正文部分
+    if (fileParam) {
+      fetch(fileParam)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          // 尝试提取 <body> 或 <main> 或 <article> 内容
+          const body = doc.querySelector('article') || doc.querySelector('main') || doc.body;
+          if (body) {
+            document.getElementById('report-body').innerHTML = body.innerHTML;
+          }
+        })
+        .catch(() => {
+          document.getElementById('report-body').innerHTML =
+            '<p style="color:#9B9589;text-align:center;padding:3rem 0;">报告文件未找到，请检查文件路径是否正确。</p>';
+        });
+    } else {
+      document.getElementById('report-body').innerHTML =
+        '<p style="color:#9B9589;text-align:center;padding:3rem 0;">未指定报告文件。</p>';
+    }
+
+    // ===== 划词评论功能 =====
+    const toolbar = document.getElementById('highlight-toolbar');
+    const inputBox = document.getElementById('comment-input-box');
+    const panel = document.getElementById('comment-panel');
+    const commentList = document.getElementById('comment-list');
+    const countEl = document.getElementById('comment-count');
+
+    const STORAGE_KEY = 'inkmark_comments_' + btoa(fileParam);
+    let comments = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    let currentRange = null;
+    let currentSelectedText = '';
+
+    function updateCount() {
+      countEl.textContent = comments.length;
+    }
+    updateCount();
+
+    function renderComments() {
+      updateCount();
+      if (comments.length === 0) {
+        commentList.innerHTML = '<div style="font-size:13px;color:#B0AA9F;text-align:center;padding:2rem 0;">还没有批注</div>';
+        return;
+      }
+      commentList.innerHTML = comments.map((c, i) => `
+        <div class="comment-item">
+          <div class="comment-item-text">"${c.text.slice(0, 60)}${c.text.length > 60 ? '...' : ''}"</div>
+          ${c.note ? `<div class="comment-item-note">${c.note}</div>` : ''}
+          <div class="comment-item-date">${c.date}</div>
+          <span class="comment-item-del" onclick="deleteComment(${i})">删除</span>
+        </div>
+      `).join('');
+    }
+    renderComments();
+
+    function deleteComment(i) {
+      comments.splice(i, 1);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(comments));
+      renderComments();
+    }
+
+    // 监听选中文本
+    document.addEventListener('mouseup', function(e) {
+      // 忽略工具栏和输入框上的选中
+      if (toolbar.contains(e.target) || inputBox.contains(e.target)) return;
+
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || sel.toString().trim() === '') {
+        toolbar.style.display = 'none';
+        return;
+      }
+
+      const text = sel.toString().trim();
+      if (text.length < 2) return;
+
+      currentSelectedText = text;
+      currentRange = sel.getRangeAt(0).cloneRange();
+
+      const rect = sel.getRangeAt(0).getBoundingClientRect();
+      toolbar.style.display = 'flex';
+      toolbar.style.left = (rect.left + window.scrollX) + 'px';
+      toolbar.style.top = (rect.top + window.scrollY - 44) + 'px';
+    });
+
+    // 点击其他地方隐藏工具栏
+    document.addEventListener('mousedown', function(e) {
+      if (!toolbar.contains(e.target) && !inputBox.contains(e.target)) {
+        toolbar.style.display = 'none';
+      }
+      if (!inputBox.contains(e.target) && !toolbar.contains(e.target)) {
+        inputBox.style.display = 'none';
+      }
+    });
+
+    // 添加备注按钮
+    document.getElementById('btn-add-comment').addEventListener('click', function() {
+      toolbar.style.display = 'none';
+      const rect = currentRange.getBoundingClientRect();
+      inputBox.style.display = 'block';
+      inputBox.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 280) + 'px';
+      inputBox.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+      document.getElementById('comment-textarea').value = '';
+      document.getElementById('comment-textarea').focus();
+      applyHighlight();
+    });
+
+    // 仅标记（不添加文字备注）
+    document.getElementById('btn-highlight-only').addEventListener('click', function() {
+      toolbar.style.display = 'none';
+      applyHighlight();
+      saveComment('');
+    });
+
+    function applyHighlight() {
+      if (!currentRange) return;
+      try {
+        const mark = document.createElement('mark');
+        mark.className = 'comment-mark';
+        mark.title = '点击查看批注';
+        currentRange.surroundContents(mark);
+        window.getSelection().removeAllRanges();
+      } catch(e) {
+        // 跨节点选择处理
+        console.log('选区跨节点，无法高亮');
+      }
+    }
+
+    function saveComment(note) {
+      const comment = {
+        text: currentSelectedText,
+        note: note,
+        date: new Date().toLocaleDateString('zh-CN')
+      };
+      comments.push(comment);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(comments));
+      renderComments();
+    }
+
+    // 保存评论
+    document.getElementById('btn-save').addEventListener('click', function() {
+      const note = document.getElementById('comment-textarea').value.trim();
+      saveComment(note);
+      inputBox.style.display = 'none';
+    });
+
+    document.getElementById('btn-cancel').addEventListener('click', function() {
+      inputBox.style.display = 'none';
+    });
+
+    // 切换侧边面板
+    document.getElementById('comment-toggle').addEventListener('click', function() {
+      panel.classList.toggle('open');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分类 · 墨痕 Inkmark</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="index.html" class="nav-logo">
+      <span class="nav-logo-main">墨痕</span>
+      <span class="nav-logo-sub">Inkmark</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">首页</a>
+      <a href="index.html#categories">全部分类</a>
+    </div>
+  </nav>
+
+  <div class="page-header">
+    <div class="breadcrumb"><a href="index.html">首页</a> / <span id="breadcrumb-cat">分类</span></div>
+    <div style="display:flex; align-items:center; gap:1rem; margin-top:1rem;">
+      <div class="cat-card-accent" id="header-accent" style="width:32px;height:4px;border-radius:2px;"></div>
+    </div>
+    <h1 class="page-title" id="page-title">分类</h1>
+    <div class="page-subtitle" id="page-subtitle"></div>
+  </div>
+
+  <div class="book-list">
+    <div class="book-list-grid" id="book-list-grid">
+      <div class="empty-state">这个分类还没有读书笔记，快去添加第一篇吧！</div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    墨痕 Inkmark · 个人读书笔记 · 持续更新中
+  </footer>
+
+  <script src="data.js"></script>
+  <script>
+    const catMap = {
+      marketing:  { name: '营销', en: 'Marketing',   accent: '#C4B5A0' },
+      history:    { name: '历史', en: 'History',     accent: '#A8B5A2' },
+      medicine:   { name: '医学', en: 'Medicine',    accent: '#A5B4C0' },
+      philosophy: { name: '哲学', en: 'Philosophy',  accent: '#B8AEC4' },
+      tech:       { name: '科技', en: 'Technology',  accent: '#B4C0B5' },
+      psychology: { name: '心理学', en: 'Psychology', accent: '#C4AEB5' }
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get('type') || 'marketing';
+    const cat = catMap[type] || catMap.marketing;
+
+    document.title = cat.name + ' · 墨痕 Inkmark';
+    document.getElementById('breadcrumb-cat').textContent = cat.name;
+    document.getElementById('page-title').textContent = cat.name;
+    document.getElementById('page-subtitle').textContent = cat.en;
+    document.getElementById('header-accent').style.background = cat.accent;
+
+    const books = BOOKS.filter(b => b.category === type);
+    const grid = document.getElementById('book-list-grid');
+
+    if (books.length > 0) {
+      grid.innerHTML = books.map(book => `
+        <a href="report.html?file=${encodeURIComponent(book.file)}&title=${encodeURIComponent(book.title)}&category=${book.category}&categoryName=${encodeURIComponent(book.categoryName)}" class="book-list-card">
+          <div class="book-list-title">《${book.title}》</div>
+          <div class="book-list-intro">${book.intro}</div>
+          <div class="book-list-summary">「${book.summary}」</div>
+          <div class="book-list-meta">${book.date}</div>
+        </a>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
